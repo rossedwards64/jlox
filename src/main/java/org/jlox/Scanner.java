@@ -3,9 +3,33 @@ package org.jlox;
 import static org.jlox.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Scanner {
+    private static final Map<String, TokenType> KEYWORDS;
+
+    static {
+        KEYWORDS = new HashMap<>();
+        KEYWORDS.put("and", AND);
+        KEYWORDS.put("class", CLASS);
+        KEYWORDS.put("else", ELSE);
+        KEYWORDS.put("false", FALSE);
+        KEYWORDS.put("for", FOR);
+        KEYWORDS.put("func", FUNC);
+        KEYWORDS.put("if", IF);
+        KEYWORDS.put("nil", NIL);
+        KEYWORDS.put("or", OR);
+        KEYWORDS.put("print", PRINT);
+        KEYWORDS.put("return", RETURN);
+        KEYWORDS.put("super", SUPER);
+        KEYWORDS.put("this", THIS);
+        KEYWORDS.put("true", TRUE);
+        KEYWORDS.put("var", VAR);
+        KEYWORDS.put("while", WHILE);
+    }
+
     private final String source;
     private final List<Token> tokens = new ArrayList<>();
     private int start = 0;
@@ -32,7 +56,8 @@ public class Scanner {
 
     private void scanToken() {
         char c = advance();
-        switch(c) {
+        switch (c) {
+            /* OPERATORS */
             case '(': addToken(LEFT_PAREN); break;
             case ')': addToken(RIGHT_PAREN); break;
             case '{': addToken(LEFT_BRACE); break;
@@ -42,7 +67,16 @@ public class Scanner {
             case '-': addToken(MINUS); break;
             case '+': addToken(PLUS); break;
             case ';': addToken(SEMICOLON); break;
-            case '*': addToken(STAR); break;
+            case '*':
+                if (match('/')) {
+                    if (peek() == '\0') {
+                        break;
+                    } else {
+                        advance();
+                    }
+                } else {
+                    addToken(STAR); break;
+                }
             case '!':
                 addToken(match('=') ? BANG_EQUAL : BANG);
                 break;
@@ -58,34 +92,42 @@ public class Scanner {
             case '/':
                 if (match('/'))
                     while (peek() != '\n' && !isAtEnd()) advance();
-                else
+                else if (match('*')) {
+                    comment();
+                } else
                     addToken(SLASH);
                 break;
+
+            /* STRINGS */
+            case '"': string(); break;
+
+            /* WHITESPACE */
             case ' ': case '\r': case '\t': break;
             case '\n': line++; break;
             default:
-                Lox.error(line, "Unexpected character.");
+                if (isDigit(c)) {
+                    number();
+                } else if (isAlpha(c)) {
+                    identifier();
+                } else {
+                    Lox.error(line, "Unexpected character.");
+                }
                 break;
         }
     }
 
-    private char advance() {
-        return source.charAt(current++);
-    }
-
-    private void addToken(TokenType type) {
+    private void addToken(final TokenType type) {
         addToken(type, null);
     }
 
-    private void addToken(TokenType type, Object literal) {
+    private void addToken(final TokenType type, final Object literal) {
         String text = source.substring(start, current);
         tokens.add(new Token(type, text, literal, line));
     }
 
-    private boolean match(char expected) {
+    private boolean match(final char expected) {
         if (isAtEnd()) return false;
         if (source.charAt(current) != expected) return false;
-
         current++;
         return true;
     }
@@ -93,5 +135,80 @@ public class Scanner {
     private char peek() {
         if (isAtEnd()) return '\0';
         return source.charAt(current);
+    }
+
+    private char peekNext() {
+        if (current + 1 >= source.length()) return '\0';
+        return source.charAt(current + 1);
+    }
+
+    private char advance() {
+        return source.charAt(current++);
+    }
+
+    private boolean isAlpha(final char c) {
+        return (c >= 'a' && c <= 'z') ||
+               (c >= 'A' && c <= 'Z') ||
+                c == '_';
+    }
+
+    private boolean isAlphaNumeric(final char c) {
+        return isAlpha(c) || isDigit(c);
+    }
+
+    private void identifier() {
+        while (isAlphaNumeric(peek())) advance();
+        String text = source.substring(start, current);
+        TokenType type = KEYWORDS.get(text);
+        if (type == null) type = IDENTIFIER;
+        addToken(type);
+    }
+
+    private void traverseString() {
+        while (peek() != '"' && !isAtEnd()) {
+            if (peek() == '\n') line++;
+            advance();
+        }
+    }
+
+    private void string() {
+        traverseString();
+        if (isAtEnd()) {
+            Lox.error(line, "Unterminated string.");
+            return;
+        }
+        advance(); /* consume the closing speech mark */
+        String value = source.substring(start + 1, current - 1); /* remove the speech marks */
+        addToken(STRING, value);
+    }
+
+    private void traverseNumber() {
+        while (isDigit(peek())) advance();
+    }
+
+    private boolean isDigit(final char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private void number() {
+        traverseNumber();
+        /* check if number is floating point */
+        if (peek() == '.' && isDigit(peekNext())) {
+            advance(); /* consume the decimal point */
+            traverseNumber();
+        }
+        double value = Double.parseDouble(source.substring(start, current));
+        addToken(NUMBER, value);
+    }
+
+    private boolean isEndOfComment(final char c) {
+        if (c == '*') {
+            return peekNext() == '/';
+        }
+        return false;
+    }
+
+    private void comment() {
+        while (!isEndOfComment(peek())) advance();
     }
 }
