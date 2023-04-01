@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
-    static boolean HAD_ERROR;
+    private static boolean HAD_ERROR;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {

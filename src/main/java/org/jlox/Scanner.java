@@ -1,6 +1,44 @@
 package org.jlox;
 
-import static org.jlox.TokenType.*;
+import static org.jlox.TokenType.AND;
+import static org.jlox.TokenType.BANG;
+import static org.jlox.TokenType.BANG_EQUAL;
+import static org.jlox.TokenType.CLASS;
+import static org.jlox.TokenType.COMMA;
+import static org.jlox.TokenType.DOT;
+import static org.jlox.TokenType.ELSE;
+import static org.jlox.TokenType.EOF;
+import static org.jlox.TokenType.EQUAL;
+import static org.jlox.TokenType.EQUAL_EQUAL;
+import static org.jlox.TokenType.FALSE;
+import static org.jlox.TokenType.FOR;
+import static org.jlox.TokenType.FUNC;
+import static org.jlox.TokenType.GREATER;
+import static org.jlox.TokenType.GREATER_EQUAL;
+import static org.jlox.TokenType.IDENTIFIER;
+import static org.jlox.TokenType.IF;
+import static org.jlox.TokenType.LEFT_BRACE;
+import static org.jlox.TokenType.LEFT_PAREN;
+import static org.jlox.TokenType.LESS;
+import static org.jlox.TokenType.LESS_EQUAL;
+import static org.jlox.TokenType.MINUS;
+import static org.jlox.TokenType.NIL;
+import static org.jlox.TokenType.NUMBER;
+import static org.jlox.TokenType.OR;
+import static org.jlox.TokenType.PLUS;
+import static org.jlox.TokenType.PRINT;
+import static org.jlox.TokenType.RETURN;
+import static org.jlox.TokenType.RIGHT_BRACE;
+import static org.jlox.TokenType.RIGHT_PAREN;
+import static org.jlox.TokenType.SEMICOLON;
+import static org.jlox.TokenType.SLASH;
+import static org.jlox.TokenType.STAR;
+import static org.jlox.TokenType.STRING;
+import static org.jlox.TokenType.SUPER;
+import static org.jlox.TokenType.THIS;
+import static org.jlox.TokenType.TRUE;
+import static org.jlox.TokenType.VAR;
+import static org.jlox.TokenType.WHILE;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,11 +74,11 @@ public class Scanner {
     private int current = 0;
     private int line = 1;
 
-    Scanner(String source) {
+    public Scanner(String source) {
         this.source = source;
     }
 
-    List<Token> scanTokens() {
+    public List<Token> scanTokens() {
         while (!isAtEnd()) {
             start = current;
             scanToken();
