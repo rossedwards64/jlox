@@ -37,7 +37,7 @@ import static org.jlox.TokenType.STRING;
 import static org.jlox.TokenType.SUPER;
 import static org.jlox.TokenType.THIS;
 import static org.jlox.TokenType.TRUE;
-import static org.jlox.TokenType.VAR;
+import static org.jlox.TokenType.LET;
 import static org.jlox.TokenType.WHILE;
 
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ public class Scanner {
         KEYWORDS.put("super", SUPER);
         KEYWORDS.put("this", THIS);
         KEYWORDS.put("true", TRUE);
-        KEYWORDS.put("var", VAR);
+        KEYWORDS.put("let", LET);
         KEYWORDS.put("while", WHILE);
     }
 
