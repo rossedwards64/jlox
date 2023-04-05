@@ -10,7 +10,10 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class Lox {
-    private static boolean HAD_ERROR;
+    private static final Interpreter INTERPRETER = new Interpreter();
+
+    private static boolean HAD_ERROR = false;
+    private static boolean HAD_RUNTIME_ERROR = false;
 
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
@@ -27,6 +30,7 @@ public class Lox {
         byte[] bytes = Files.readAllBytes(Paths.get(path));
         run(new String(bytes, Charset.defaultCharset()));
         if (HAD_ERROR) System.exit(65);
+        if (HAD_RUNTIME_ERROR) System.exit(70);
     }
 
     private static void runPrompt() throws IOException {
@@ -48,7 +52,7 @@ public class Lox {
         Parser parser = new Parser(tokens);
         Expr expr = parser.parse();
         if (HAD_ERROR) return;
-        System.out.println(new AstPrinter().print(expr));
+        INTERPRETER.interpret(expr);
     }
 
     public static void error(int line, String message) {
@@ -56,11 +60,17 @@ public class Lox {
     }
 
     public static void error(Token token, String message) {
-        if (token.getType() == TokenType.EOF) {
-            report(token.getLine(), " at end", message);
+        if (token.type() == TokenType.EOF) {
+            report(token.line(), " at end", message);
         } else {
-            report(token.getLine(), " at '" + token.getLexeme() + "'", message);
+            report(token.line(), " at '" + token.lexeme() + "'", message);
         }
+    }
+
+    public static void runtimeError(RuntimeError error) {
+        System.err.println(error.getMessage() +
+                           "\n[line " + error.getToken().line() + "]");
+        HAD_RUNTIME_ERROR = true;
     }
 
     private static void report(int line, String where, String message) {

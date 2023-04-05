@@ -1,11 +1,29 @@
 package org.jlox;
 
-import static org.jlox.TokenType.*;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import static org.jlox.TokenType.BANG;
+import static org.jlox.TokenType.BANG_EQUAL;
+import static org.jlox.TokenType.COMMA;
+import static org.jlox.TokenType.EOF;
+import static org.jlox.TokenType.FALSE;
+import static org.jlox.TokenType.GREATER;
+import static org.jlox.TokenType.GREATER_EQUAL;
+import static org.jlox.TokenType.LEFT_PAREN;
+import static org.jlox.TokenType.LESS;
+import static org.jlox.TokenType.LESS_EQUAL;
+import static org.jlox.TokenType.MINUS;
+import static org.jlox.TokenType.NIL;
+import static org.jlox.TokenType.NUMBER;
+import static org.jlox.TokenType.PLUS;
+import static org.jlox.TokenType.RIGHT_PAREN;
+import static org.jlox.TokenType.SEMICOLON;
+import static org.jlox.TokenType.SLASH;
+import static org.jlox.TokenType.STAR;
+import static org.jlox.TokenType.STRING;
+import static org.jlox.TokenType.TRUE;
 
 public class Parser {
     private final List<Token> tokens;
@@ -24,23 +42,23 @@ public class Parser {
     }
 
     private Expr expression() {
-        return equality();
+        return binary(this::equality, List.of(COMMA));
     }
 
     private Expr equality() {
-        return parseRule(this::comparison, Arrays.asList(BANG, BANG_EQUAL));
+        return binary(this::comparison, Arrays.asList(BANG, BANG_EQUAL));
     }
 
     private Expr comparison() {
-        return parseRule(this::term, Arrays.asList(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL));
+        return binary(this::term, Arrays.asList(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL));
     }
 
     private Expr term() {
-        return parseRule(this::factor, Arrays.asList(MINUS, PLUS));
+        return binary(this::factor, Arrays.asList(MINUS, PLUS));
     }
 
     private Expr factor() {
-        return parseRule(this::unary, Arrays.asList(SLASH, STAR));
+        return binary(this::unary, Arrays.asList(SLASH, STAR));
     }
 
     private Expr unary() {
@@ -57,7 +75,7 @@ public class Parser {
         if (match(TRUE)) return new Expr.Literal(true);
         if (match(NIL)) return new Expr.Literal(null);
         if (match(NUMBER, STRING)) {
-            return new Expr.Literal(previous().getLiteral());
+            return new Expr.Literal(previous().literal());
         }
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
@@ -65,6 +83,26 @@ public class Parser {
             return new Expr.Grouping(expr);
         }
         throw error(peek(), "Expected an expression");
+    }
+
+    private Expr binary(Callable<Expr> exprType, List<TokenType> types) {
+        try {
+            Expr left = exprType.call();
+            while (match(types.toArray(TokenType[]::new))) {
+                Token operator = previous();
+                Expr right = exprType.call();
+                if (right == null) {
+                    throw error(operator,
+                            "Expected right-hand expression after " +
+                                    operator.lexeme());
+                }
+                left = new Expr.Binary(left, operator, right);
+            }
+            return left;
+        } catch (Exception e) {
+            System.err.println("Error parsing expression");
+        }
+        return null;
     }
 
     private Token consume(TokenType type, String message) throws ParseError {
@@ -80,29 +118,14 @@ public class Parser {
     private void synchronize() {
         advance();
         while (!isAtEnd()) {
-            if (previous().getType() == SEMICOLON) return;
-            switch (peek().getType()) {
+            if (previous().type() == SEMICOLON) return;
+            switch (peek().type()) {
                 case CLASS, FOR, FUNC, IF, PRINT, RETURN, LET, WHILE -> {
                     return;
                 }
             }
             advance();
         }
-    }
-
-    private Expr parseRule(Callable<Expr> exprType, List<TokenType> types) {
-        try {
-            Expr expr = exprType.call();
-            while (match(types.toArray(TokenType[]::new))) {
-                Token operator = previous();
-                Expr right = exprType.call();
-                expr = new Expr.Binary(expr, operator, right);
-            }
-            return expr;
-        } catch (Throwable t) {
-            System.err.println("Error parsing rule");
-        }
-        return null;
     }
 
     private boolean match(TokenType... types) {
@@ -117,7 +140,7 @@ public class Parser {
 
     private boolean check(TokenType type) {
         if (isAtEnd()) return false;
-        return peek().getType() == type;
+        return peek().type() == type;
     }
 
     private Token advance() {
@@ -126,7 +149,7 @@ public class Parser {
     }
 
     private boolean isAtEnd() {
-        return peek().getType() == EOF;
+        return peek().type() == EOF;
     }
 
     private Token peek() {

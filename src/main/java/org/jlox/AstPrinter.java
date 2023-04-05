@@ -7,7 +7,7 @@ public class AstPrinter implements Expr.Visitor<String> {
 
     @Override
     public String visitBinaryExpr(final Expr.Binary expr) {
-        return parenthesise(expr.getOperator().getLexeme(),
+        return parenthesise(expr.getOperator().lexeme(),
                 expr.getLeft(), expr.getRight());
     }
 
@@ -24,7 +24,7 @@ public class AstPrinter implements Expr.Visitor<String> {
 
     @Override
     public String visitUnaryExpr(final Expr.Unary expr) {
-        return parenthesise(expr.getOperator().getLexeme(),
+        return parenthesise(expr.getOperator().lexeme(),
                 expr.getRight());
     }
 

@@ -1,5 +1,10 @@
 package org.jlox;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.jlox.TokenType.AND;
 import static org.jlox.TokenType.BANG;
 import static org.jlox.TokenType.BANG_EQUAL;
@@ -21,6 +26,7 @@ import static org.jlox.TokenType.LEFT_BRACE;
 import static org.jlox.TokenType.LEFT_PAREN;
 import static org.jlox.TokenType.LESS;
 import static org.jlox.TokenType.LESS_EQUAL;
+import static org.jlox.TokenType.LET;
 import static org.jlox.TokenType.MINUS;
 import static org.jlox.TokenType.NIL;
 import static org.jlox.TokenType.NUMBER;
@@ -37,13 +43,7 @@ import static org.jlox.TokenType.STRING;
 import static org.jlox.TokenType.SUPER;
 import static org.jlox.TokenType.THIS;
 import static org.jlox.TokenType.TRUE;
-import static org.jlox.TokenType.LET;
 import static org.jlox.TokenType.WHILE;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class Scanner {
     private static final Map<String, TokenType> KEYWORDS;
