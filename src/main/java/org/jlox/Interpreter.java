@@ -20,6 +20,10 @@ public class Interpreter implements Expr.Visitor<Object> {
                     return (double) left + (double) right;
                 } else if (left instanceof String && right instanceof String) {
                     return (String) left + (String) right;
+                } else if (left instanceof String && right instanceof Double) {
+                    return (String) left + right;
+                } else if (left instanceof Double && right instanceof String) {
+                    return left + (String) right;
                 }
                 throw new RuntimeError(expr.getOperator(),
                                        "Operands must be two numbers or two strings");
@@ -36,6 +40,9 @@ public class Interpreter implements Expr.Visitor<Object> {
             }
             case SLASH -> {
                 checkNumberOperands(expr.getOperator(), left, right);
+                if ((double) left == 0 || (double) right == 0) {
+                    throw new RuntimeError(expr.getOperator(), "Cannot divide by zero!");
+                }
                 return (double) left / (double) right;
             }
             case STAR -> {
