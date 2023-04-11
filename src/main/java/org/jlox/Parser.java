@@ -1,5 +1,6 @@
 package org.jlox;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -18,6 +19,7 @@ import static org.jlox.TokenType.MINUS;
 import static org.jlox.TokenType.NIL;
 import static org.jlox.TokenType.NUMBER;
 import static org.jlox.TokenType.PLUS;
+import static org.jlox.TokenType.PRINT;
 import static org.jlox.TokenType.RIGHT_PAREN;
 import static org.jlox.TokenType.SEMICOLON;
 import static org.jlox.TokenType.SLASH;
@@ -33,16 +35,33 @@ public class Parser {
         this.tokens = tokens;
     }
 
-    public Expr parse() {
-        try {
-            return expression();
-        } catch (ParseError p) {
-            return null;
+    public List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(statement());
         }
+        return statements;
     }
 
     private Expr expression() {
         return binary(this::equality, List.of(COMMA));
+    }
+
+    private Stmt statement() {
+        if (match(PRINT)) return printStatement();
+        return expressionStatement();
+    }
+
+    private Stmt printStatement() {
+        Expr value = expression();
+        consume(SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Print(value);
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(SEMICOLON, "Expect ';' after value.");
+        return new Stmt.Expression(expr);
     }
 
     private Expr equality() {
