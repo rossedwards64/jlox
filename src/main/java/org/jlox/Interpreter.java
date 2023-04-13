@@ -4,6 +4,8 @@ import java.util.List;
 
 public class Interpreter implements Expr.Visitor<Object>,
                                     Stmt.Visitor<Void> {
+    private Environment environment = new Environment();
+
     public void interpret(List<Stmt> statements) {
         try {
             for (Stmt statement : statements) {
@@ -12,6 +14,13 @@ public class Interpreter implements Expr.Visitor<Object>,
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
+    }
+
+    @Override
+    public Object visitAssignExpr(final Expr.Assign expr) {
+        Object value = evaluate(expr.getValue());
+        environment.assign(expr.getName(), value);
+        return value;
     }
 
     @Override
@@ -84,6 +93,11 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Object visitVariableExpr(final Expr.Variable expr) {
+        return environment.get(expr.getName());
+    }
+
+    @Override
     public Object visitUnaryExpr(final Expr.Unary expr) {
         Object right = evaluate(expr.getRight());
         switch (expr.getOperator().type()) {
@@ -98,12 +112,54 @@ public class Interpreter implements Expr.Visitor<Object>,
         return null;
     }
 
+    @Override
+    public Void visitBlockStmt(final Stmt.Block stmt) {
+        executeBlock(stmt.getStatements(), new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitExpressionStmt(final Stmt.Expression stmt) {
+        evaluate(stmt.getExpression());
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(final Stmt.Print stmt) {
+        Object value = evaluate(stmt.getExpression());
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    @Override
+    public Void visitVarStmt(final Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.getInitializer() != null) {
+            value = evaluate(stmt.getInitializer());
+        }
+        environment.define(stmt.getName().lexeme(), value);
+        return null;
+    }
+
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    public void executeBlock(List<Stmt> statements,
+                             Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
     }
 
     private boolean isEqual(Object lhs, Object rhs) {
@@ -139,18 +195,5 @@ public class Interpreter implements Expr.Visitor<Object>,
     private void checkNumberOperands(Token operator, Object left, Object right) {
         if (left instanceof Double && right instanceof Double) return;
         throw new RuntimeError(operator, "Operands must be numbers.");
-    }
-
-    @Override
-    public Void visitExpressionStmt(final Stmt.Expression stmt) {
-        evaluate(stmt.getExpression());
-        return null;
-    }
-
-    @Override
-    public Void visitPrintStmt(final Stmt.Print stmt) {
-        Object value = evaluate(stmt.getExpression());
-        System.out.println(stringify(value));
-        return null;
     }
 }
