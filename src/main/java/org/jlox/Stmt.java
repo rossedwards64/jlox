@@ -6,8 +6,10 @@ abstract class Stmt {
     interface Visitor<R> {
         R visitBlockStmt(Block stmt);
         R visitExpressionStmt(Expression stmt);
+        R visitIfStmt(If stmt);
         R visitPrintStmt(Print stmt);
         R visitVarStmt(Var stmt);
+        R visitWhileStmt(While stmt);
     }
 
     abstract <R> R accept(Visitor<R> visitor);
@@ -46,6 +48,35 @@ abstract class Stmt {
         }
     }
 
+    static class If extends Stmt {
+        private final Expr condition;
+        private final Stmt thenBranch;
+        private final Stmt elseBranch;
+
+        If(Expr condition, Stmt thenBranch, Stmt elseBranch) {
+            this.condition = condition;
+            this.thenBranch = thenBranch;
+            this.elseBranch = elseBranch;
+        }
+
+        public Expr getCondition() {
+            return condition;
+        }
+
+        public Stmt getThenBranch() {
+            return thenBranch;
+        }
+
+        public Stmt getElseBranch() {
+            return elseBranch;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitIfStmt(this);
+        }
+    }
+
     static class Print extends Stmt {
         private final Expr expression;
 
@@ -81,6 +112,31 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) { return visitor.visitVarStmt(this); }
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitVarStmt(this);
+        }
+    }
+
+    static class While extends Stmt {
+        private final Expr condition;
+        private final Stmt body;
+
+        While(Expr condition, Stmt body) {
+            this.condition = condition;
+            this.body = body;
+        }
+
+        public Expr getCondition() {
+            return condition;
+        }
+
+        public Stmt getBody() {
+            return body;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitWhileStmt(this);
+        }
     }
 }

@@ -5,14 +5,32 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import static org.jlox.ErrorMessage.NO_BLOCK_END;
+import static org.jlox.ErrorMessage.NO_EXPR;
+import static org.jlox.ErrorMessage.NO_EXPR_END;
+import static org.jlox.ErrorMessage.NO_FOR_CLAUSE_END;
+import static org.jlox.ErrorMessage.NO_FOR_COND_END;
+import static org.jlox.ErrorMessage.NO_FOR_START;
+import static org.jlox.ErrorMessage.NO_IF_END;
+import static org.jlox.ErrorMessage.NO_IF_START;
+import static org.jlox.ErrorMessage.NO_STMT_END;
+import static org.jlox.ErrorMessage.NO_VAR_END;
+import static org.jlox.ErrorMessage.NO_VAR_NAME;
+import static org.jlox.ErrorMessage.NO_WHILE_END;
+import static org.jlox.ErrorMessage.NO_WHILE_START;
+import static org.jlox.TokenType.AND;
 import static org.jlox.TokenType.BANG;
 import static org.jlox.TokenType.BANG_EQUAL;
+import static org.jlox.TokenType.ELSE;
 import static org.jlox.TokenType.EOF;
 import static org.jlox.TokenType.EQUAL;
+import static org.jlox.TokenType.EQUAL_EQUAL;
 import static org.jlox.TokenType.FALSE;
+import static org.jlox.TokenType.FOR;
 import static org.jlox.TokenType.GREATER;
 import static org.jlox.TokenType.GREATER_EQUAL;
 import static org.jlox.TokenType.IDENTIFIER;
+import static org.jlox.TokenType.IF;
 import static org.jlox.TokenType.LEFT_BRACE;
 import static org.jlox.TokenType.LEFT_PAREN;
 import static org.jlox.TokenType.LESS;
@@ -21,6 +39,7 @@ import static org.jlox.TokenType.LET;
 import static org.jlox.TokenType.MINUS;
 import static org.jlox.TokenType.NIL;
 import static org.jlox.TokenType.NUMBER;
+import static org.jlox.TokenType.OR;
 import static org.jlox.TokenType.PLUS;
 import static org.jlox.TokenType.PRINT;
 import static org.jlox.TokenType.RIGHT_BRACE;
@@ -30,6 +49,7 @@ import static org.jlox.TokenType.SLASH;
 import static org.jlox.TokenType.STAR;
 import static org.jlox.TokenType.STRING;
 import static org.jlox.TokenType.TRUE;
+import static org.jlox.TokenType.WHILE;
 
 public class Parser {
     private final List<Token> tokens;
@@ -58,25 +78,68 @@ public class Parser {
     }
 
     private Stmt varDeclaration() {
-        Token name = consume(IDENTIFIER, "Expect variable name.");
+        Token name = consume(IDENTIFIER, NO_VAR_NAME.getMsg());
         Expr initializer = null;
         if (match(EQUAL)) {
             initializer = expression();
         }
-        consume(SEMICOLON, "Expect ';' after anvariable declaration.");
+        consume(SEMICOLON, NO_VAR_END.getMsg());
         return new Stmt.Var(name, initializer);
     }
 
     private Stmt statement() {
+        if (match(IF)) return ifStatement();
         if (match(PRINT)) return printStatement();
+        if (match(WHILE)) return whileStatement();
+        if (match(FOR)) return forStatement();
         if (match(LEFT_BRACE)) return new Stmt.Block(block());
         return expressionStatement();
     }
 
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, NO_IF_START.getMsg());
+        Expr condition = expression();
+        consume(RIGHT_PAREN, NO_IF_END.getMsg());
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        if (match(ELSE)) {
+            elseBranch = statement();
+        }
+        return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
     private Stmt printStatement() {
         Expr value = expression();
-        consume(SEMICOLON, "Expect ';' after anvalue.");
+        consume(SEMICOLON, NO_STMT_END.getMsg());
         return new Stmt.Print(value);
+    }
+
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, NO_WHILE_START.getMsg());
+        Expr condition = expression();
+        consume(RIGHT_PAREN, NO_WHILE_END.getMsg());
+        Stmt body = statement();
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, NO_FOR_START.getMsg());
+        Stmt initializer;
+        if (match(SEMICOLON)) initializer = null;
+        else if (match(LET)) initializer = varDeclaration();
+        else initializer = expressionStatement();
+        Expr condition = consumeForLoopClause(SEMICOLON,
+                NO_FOR_COND_END.getMsg());
+        Expr increment = consumeForLoopClause(RIGHT_PAREN,
+                NO_FOR_CLAUSE_END.getMsg());
+        Stmt body = statement();
+        if (increment != null)
+            body = new Stmt.Block(Arrays.asList(body,
+                    new Stmt.Expression(increment)));
+        if (condition == null) condition = new Expr.Literal(true);
+        body = new Stmt.While(condition, body);
+        if (initializer != null) body = new Stmt.Block(Arrays.asList(initializer, body));
+        return body;
     }
 
     private Expr expression() {
@@ -85,7 +148,7 @@ public class Parser {
 
     private Stmt expressionStatement() {
         Expr expr = expression();
-        consume(SEMICOLON, "Expect ';' after anvalue.");
+        consume(SEMICOLON, NO_STMT_END.getMsg());
         return new Stmt.Expression(expr);
     }
 
@@ -94,12 +157,12 @@ public class Parser {
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             statements.add(declaration());
         }
-        consume(RIGHT_BRACE, "Expect '}' after anblock.");
+        consume(RIGHT_BRACE, NO_BLOCK_END.getMsg());
         return statements;
     }
 
     private Expr assignment() {
-        Expr expr = equality();
+        Expr expr = or();
         if (match(EQUAL)) {
             Token equals = previous();
             Expr value = assignment();
@@ -112,8 +175,31 @@ public class Parser {
         return expr;
     }
 
+    private Expr or() {
+        return conditional(this::and, OR);
+    }
+
+    private Expr and() {
+        return conditional(this::equality, AND);
+    }
+
+    private Expr conditional(Callable<Expr> exprType, TokenType type) {
+        try {
+            Expr expr = exprType.call();
+            while (match(type)) {
+                Token operator = previous();
+                Expr right = exprType.call();
+                expr = new Expr.Logical(expr, operator, right);
+            }
+            return expr;
+        } catch (Exception e) {
+            System.err.println("Error parsing conditional expression.");
+        }
+        return null;
+    }
+
     private Expr equality() {
-        return binary(this::comparison, Arrays.asList(BANG, BANG_EQUAL));
+        return binary(this::comparison, Arrays.asList(EQUAL_EQUAL, BANG_EQUAL));
     }
 
     private Expr comparison() {
@@ -149,10 +235,10 @@ public class Parser {
         }
         if (match(LEFT_PAREN)) {
             Expr expr = expression();
-            consume(RIGHT_PAREN, "Expected ')' after an expression");
+            consume(RIGHT_PAREN, NO_EXPR_END.getMsg());
             return new Expr.Grouping(expr);
         }
-        throw error(peek(), "Expected an expression");
+        throw error(peek(), NO_EXPR.getMsg());
     }
 
     private Expr binary(Callable<Expr> exprType, List<TokenType> types) {
@@ -163,7 +249,7 @@ public class Parser {
                 Expr right = exprType.call();
                 if (right == null) {
                     throw error(operator,
-                            "Expected right-hand expression after an" +
+                            "Expected right-hand expression after a " +
                                     operator.lexeme());
                 }
                 left = new Expr.Binary(left, operator, right);
@@ -206,6 +292,15 @@ public class Parser {
             }
         }
         return false;
+    }
+
+    private Expr consumeForLoopClause(TokenType tokenType, String message) {
+        Expr clause = null;
+        if (!check(tokenType)) {
+            clause = expression();
+        }
+        consume(tokenType, message);
+        return clause;
     }
 
     private boolean check(TokenType type) {
