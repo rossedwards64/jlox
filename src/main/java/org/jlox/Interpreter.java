@@ -1,10 +1,40 @@
 package org.jlox;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import static org.jlox.ErrorMessage.DIVIDE_BY_ZERO;
+import static org.jlox.ErrorMessage.INVALID_CALL;
+import static org.jlox.ErrorMessage.INVALID_CALL_PARAMS;
+import static org.jlox.ErrorMessage.MATCH_OPERANDS;
+import static org.jlox.ErrorMessage.OPERAND_NUMBER;
+import static org.jlox.ErrorMessage.OPERAND_NUMBERS;
 
 public class Interpreter implements Expr.Visitor<Object>,
                                     Stmt.Visitor<Void> {
+    public final Environment globals = new Environment();
     private Environment environment = new Environment();
+
+    public Interpreter() {
+        globals.define("clock",
+            new LoxCallable() {
+                @Override
+                public int arity() {
+                    return 0;
+                }
+
+                @Override
+                public Object call(final Interpreter interpreter, final List<Object> args) {
+                    return (double) System.currentTimeMillis() / 1000.0;
+                }
+
+                @Override
+                public String toString() {
+                    return "<native fn>";
+                }
+            }
+        );
+    }
 
     public void interpret(List<Stmt> statements) {
         try {
@@ -32,14 +62,14 @@ public class Interpreter implements Expr.Visitor<Object>,
                 if (left instanceof Double && right instanceof Double) {
                     return (double) left + (double) right;
                 } else if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                    return left + (String) right;
                 } else if (left instanceof String && right instanceof Double) {
                     return (String) left + right;
                 } else if (left instanceof Double && right instanceof String) {
                     return left + (String) right;
                 }
                 throw new RuntimeError(expr.getOperator(),
-                                       "Operands must be two numbers or two strings");
+                        MATCH_OPERANDS.getMsg());
             }
             case BANG_EQUAL -> {
                 return !isEqual(left, right);
@@ -54,7 +84,8 @@ public class Interpreter implements Expr.Visitor<Object>,
             case SLASH -> {
                 checkNumberOperands(expr.getOperator(), left, right);
                 if ((double) left == 0 || (double) right == 0) {
-                    throw new RuntimeError(expr.getOperator(), "Cannot divide by zero!");
+                    throw new RuntimeError(expr.getOperator(),
+                            DIVIDE_BY_ZERO.getMsg());
                 }
                 return (double) left / (double) right;
             }
@@ -80,6 +111,25 @@ public class Interpreter implements Expr.Visitor<Object>,
             }
         }
         return null;
+    }
+
+    @Override
+    public Object visitCallExpr(final Expr.Call expr) {
+        Object callee = evaluate(expr.getCallee());
+        List<Object> args = new ArrayList<>();
+        for (Expr arg : expr.getArgs()) {
+            args.add(evaluate(arg));
+        }
+        if (!(callee instanceof final LoxCallable function)) {
+            throw new RuntimeError(expr.getParen(),
+                    INVALID_CALL.getMsg());
+        }
+        if (args.size() != function.arity()) {
+            throw new RuntimeError(expr.getParen(),
+                    String.format(INVALID_CALL_PARAMS.getMsg(),
+                            function.arity(), args.size()));
+        }
+        return function.call(this, args);
     }
 
     @Override
@@ -136,6 +186,13 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Void visitFunctionStmt(final Stmt.Function stmt) {
+        environment.define(stmt.getName().lexeme(),
+                new LoxFunction(stmt, environment));
+        return null;
+    }
+
+    @Override
     public Void visitIfStmt(final Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.getCondition()))) {
             execute(stmt.getThenBranch());
@@ -150,6 +207,13 @@ public class Interpreter implements Expr.Visitor<Object>,
         Object value = evaluate(stmt.getExpression());
         System.out.println(stringify(value));
         return null;
+    }
+
+    @Override
+    public Void visitReturnStmt(final Stmt.Return stmt) {
+        Object value = null;
+        if (stmt.getValue() != null) value = evaluate(stmt.getValue());
+        throw new Return(value);
     }
 
     @Override
@@ -178,8 +242,7 @@ public class Interpreter implements Expr.Visitor<Object>,
         stmt.accept(this);
     }
 
-    public void executeBlock(List<Stmt> statements,
-                             Environment environment) {
+    public void executeBlock(List<Stmt> statements, Environment environment) {
         Environment previous = this.environment;
         try {
             this.environment = environment;
@@ -218,11 +281,11 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double) return;
-        throw new RuntimeError(operator, "Operand must be a number.");
+        throw new RuntimeError(operator, OPERAND_NUMBER.getMsg());
     }
 
     private void checkNumberOperands(Token operator, Object left, Object right) {
         if (left instanceof Double && right instanceof Double) return;
-        throw new RuntimeError(operator, "Operands must be numbers.");
+        throw new RuntimeError(operator, OPERAND_NUMBERS.getMsg());
     }
 }

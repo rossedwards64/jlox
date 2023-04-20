@@ -18,6 +18,11 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitCallExpr(final Expr.Call expr) {
+        return null;
+    }
+
+    @Override
     public String visitLogicalExpr(final Expr.Logical expr) {
         return null;
     }
