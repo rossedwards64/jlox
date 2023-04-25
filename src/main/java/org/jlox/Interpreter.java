@@ -1,7 +1,9 @@
 package org.jlox;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.jlox.ErrorMessage.DIVIDE_BY_ZERO;
 import static org.jlox.ErrorMessage.INVALID_CALL;
@@ -13,6 +15,7 @@ import static org.jlox.ErrorMessage.OPERAND_NUMBERS;
 public class Interpreter implements Expr.Visitor<Object>,
                                     Stmt.Visitor<Void> {
     public final Environment globals = new Environment();
+    private final Map<Expr, Integer> locals = new HashMap<>();
     private Environment environment = new Environment();
 
     public Interpreter() {
@@ -49,7 +52,12 @@ public class Interpreter implements Expr.Visitor<Object>,
     @Override
     public Object visitAssignExpr(final Expr.Assign expr) {
         Object value = evaluate(expr.getValue());
-        environment.assign(expr.getName(), value);
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.getName(), value);
+        } else {
+            globals.assign(expr.getName(), value);
+        }
         return value;
     }
 
@@ -155,7 +163,16 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Object visitVariableExpr(final Expr.Variable expr) {
-        return environment.get(expr.getName());
+        return lookUpVariable(expr.getName(), expr);
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme());
+        } else {
+            return globals.get(name);
+        }
     }
 
     @Override
@@ -240,6 +257,10 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    public void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
     }
 
     public void executeBlock(List<Stmt> statements, Environment environment) {

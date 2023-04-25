@@ -3,9 +3,9 @@ package org.jlox;
 import java.util.Map;
 import java.util.HashMap;
 
-public class Environment {
-    private final static String UNDEFINED_VARIABLE = "Undefined variable '%s'.";
+import static org.jlox.ErrorMessage.UNDEFINED_VARIABLE;
 
+public class Environment {
     private final Environment enclosing;
     private final Map<String, Object> values = new HashMap<>();
 
@@ -13,7 +13,7 @@ public class Environment {
         enclosing = null;
     }
 
-    public Environment(Environment enclosing) {
+    public Environment(final Environment enclosing) {
         this.enclosing = enclosing;
     }
 
@@ -25,13 +25,28 @@ public class Environment {
         values.put(name, value);
     }
 
+    public Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+            environment = environment.getEnclosing();
+        }
+        return environment;
+    }
+
+    public Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
     public Object get(Token name) {
         if (values.containsKey(name.lexeme())) {
             return values.get(name.lexeme());
         }
         if (enclosing != null) return enclosing.get(name);
-        throw new RuntimeError(name,
-                String.format(UNDEFINED_VARIABLE, name.lexeme()));
+        throw environmentError(name, UNDEFINED_VARIABLE);
+    }
+
+    public void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme(), value);
     }
 
     public void assign(Token name, Object value) {
@@ -43,7 +58,11 @@ public class Environment {
             enclosing.assign(name, value);
             return;
         }
+        throw environmentError(name, UNDEFINED_VARIABLE);
+    }
+
+    private RuntimeError environmentError(Token name, ErrorMessage message) {
         throw new RuntimeError(name,
-                String.format(UNDEFINED_VARIABLE, name.lexeme()));
+                String.format(message.getMsg(), name.lexeme()));
     }
 }
