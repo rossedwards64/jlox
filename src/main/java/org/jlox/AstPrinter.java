@@ -43,6 +43,11 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitSuperExpr(Expr.Super expr) {
+        return null;
+    }
+
+    @Override
     public String visitGroupingExpr(final Expr.Grouping expr) {
         return parenthesise("group", expr.getExpression());
     }

@@ -1,20 +1,30 @@
-class Bacon {
+class Pork {
+  fry() {
+    print "Tss tss tss.";
+  }
+
+  eat() {
+    print "Chew chew chew.";
+  }
+}
+
+class Bacon < Pork {
   init() {
     print "Made bacon.";
   }
 
   eat() {
+    super.eat();
     print "Crunch crunch crunch.";
   }
 
-  b() {
+  printSelf() {
     print self;
   }
 }
 
-print Bacon;
-
 let b = Bacon();
 b.eat();
 Bacon().eat();
-Bacon().b();
+b.printSelf();
+b.fry();

@@ -12,6 +12,8 @@ import static org.jlox.ErrorMessage.MATCH_OPERANDS;
 import static org.jlox.ErrorMessage.NOT_INSTANCE;
 import static org.jlox.ErrorMessage.OPERAND_NUMBER;
 import static org.jlox.ErrorMessage.OPERAND_NUMBERS;
+import static org.jlox.ErrorMessage.SUPER_MUST_BE_CLASS;
+import static org.jlox.LoxConstants.*;
 
 public class Interpreter implements Expr.Visitor<Object>,
                                     Stmt.Visitor<Void> {
@@ -179,6 +181,17 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        int distance = locals.get(expr);
+        LoxClass superclass = (LoxClass) environment.getAt(
+                distance, SUPER.getName());
+        LoxInstance object = (LoxInstance) environment.getAt(
+                distance - 1, THIS.getName());
+        LoxFunction method = superclass.findMethod(expr.getMethod().lexeme());
+        return method.bind(object);
+    }
+
+    @Override
     public Object visitGroupingExpr(final Expr.Grouping expr) {
         return evaluate(expr.getExpression());
     }
@@ -225,15 +238,31 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Void visitClassStmt(Stmt.Class stmt) {
+        Object superclass = null;
+        if (stmt.getSuperclass() != null) {
+            superclass = evaluate(stmt.getSuperclass());
+            if (!(superclass instanceof LoxClass)) {
+                throw new RuntimeError(stmt.getSuperclass().getName(),
+                        SUPER_MUST_BE_CLASS.getMsg());
+            }
+        }
         environment.define(stmt.getName().lexeme(), null);
+        if (stmt.getSuperclass() != null) {
+            environment = new Environment(environment);
+            environment.define(SUPER.getName(), superclass);
+        }
         Map<String, LoxFunction> methods = new HashMap<>();
         for (Stmt.Function method : stmt.getMethods()) {
             LoxFunction function = new LoxFunction(method,
                     environment,
-                    method.getName().lexeme().equals("init"));
+                    method.getName().lexeme().equals(INIT.getName()));
             methods.put(method.getName().lexeme(), function);
         }
-        LoxClass clazz = new LoxClass(stmt.getName().lexeme(), methods);
+        LoxClass clazz = new LoxClass(stmt.getName().lexeme(),
+                (LoxClass) superclass, methods);
+        if (superclass != null) {
+            environment = environment.getEnclosing();
+        }
         environment.assign(stmt.getName(), clazz);
         return null;
     }

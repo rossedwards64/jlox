@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Stack;
 
 import static org.jlox.ErrorMessage.*;
+import static org.jlox.LoxConstants.*;
 
 public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     private final Interpreter interpreter;
@@ -26,7 +27,8 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
 
     private enum ClassType {
         NONE,
-        CLASS
+        CLASS,
+        SUBCLASS
     }
 
     public void resolve(List<Stmt> statements) {
@@ -141,6 +143,19 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitSuperExpr(Expr.Super expr) {
+        if (currentClass == ClassType.NONE) {
+            Lox.error(expr.getKeyword(),
+                    SUPER_OUTSIDE_CLASS.getMsg());
+        } else if (currentClass != ClassType.SUBCLASS) {
+            Lox.error(expr.getKeyword(),
+                    SUPER_NO_SUPERCLASS.getMsg());
+        }
+        resolveLocal(expr, expr.getKeyword());
+        return null;
+    }
+
+    @Override
     public Void visitGroupingExpr(Expr.Grouping expr) {
         resolve(expr.getExpression());
         return null;
@@ -181,16 +196,29 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
         currentClass = ClassType.CLASS;
         declare(stmt.getName());
         define(stmt.getName());
+        if (stmt.getSuperclass() != null) {
+            if (stmt.getName().lexeme().equals(
+                    stmt.getSuperclass().getName().lexeme()
+            )) {
+                Lox.error(stmt.getSuperclass().getName().line(),
+                        SELF_INHERIT.getMsg());
+            }
+            currentClass = ClassType.SUBCLASS;
+            resolve(stmt.getSuperclass());
+            beginScope();
+            scopes.peek().put(SUPER.getName(), true);
+        }
         beginScope();
-        scopes.peek().put("self", true);
+        scopes.peek().put(SELF.getName(), true);
         for (Stmt.Function method : stmt.getMethods()) {
             FunctionType declaration = FunctionType.METHOD;
-            if (method.getName().lexeme().equals("init")) {
+            if (method.getName().lexeme().equals(INIT.getName())) {
                 declaration = FunctionType.INITIALISER;
             }
             resolveFunction(method, declaration);
         }
         endScope();
+        if (stmt.getSuperclass() != null) endScope();
         currentClass = enclosingClass;
         return null;
     }

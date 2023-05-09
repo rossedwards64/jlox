@@ -2,6 +2,8 @@ package org.jlox;
 
 import java.util.List;
 
+import static org.jlox.LoxConstants.SELF;
+
 public class LoxFunction implements LoxCallable {
     private final Stmt.Function declaration;
     private final Environment closure;
@@ -16,7 +18,7 @@ public class LoxFunction implements LoxCallable {
 
     public LoxFunction bind(LoxInstance instance) {
         Environment environment = new Environment(closure);
-        environment.define("self", instance);
+        environment.define(SELF.getName(), instance);
         return new LoxFunction(declaration, environment, isInitialiser);
     }
 
@@ -35,10 +37,10 @@ public class LoxFunction implements LoxCallable {
         try {
             interpreter.executeBlock(declaration.getBody(), environment);
         } catch (Return returnValue) {
-            if (isInitialiser) return closure.getAt(0, "self");
+            if (isInitialiser) return closure.getAt(0, SELF.getName());
             return returnValue.getValue();
         }
-        if (isInitialiser) return closure.getAt(0, "self");
+        if (isInitialiser) return closure.getAt(0, SELF.getName());
         return null;
     }
 

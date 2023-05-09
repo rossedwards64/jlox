@@ -3,19 +3,26 @@ package org.jlox;
 import java.util.List;
 import java.util.Map;
 
+import static org.jlox.LoxConstants.INIT;
+
 public class LoxClass implements LoxCallable {
     private final String name;
+    private final LoxClass superclass;
     private final Map<String, LoxFunction> methods;
 
-    LoxClass(final String name,
+    LoxClass(final String name, LoxClass superclass,
              final Map<String, LoxFunction> methods) {
         this.name = name;
+        this.superclass = superclass;
         this.methods = methods;
     }
 
     public LoxFunction findMethod(String name) {
         if (methods.containsKey(name)) {
             return methods.get(name);
+        }
+        if (superclass != null) {
+            return superclass.findMethod(name);
         }
         return null;
     }
@@ -42,7 +49,7 @@ public class LoxClass implements LoxCallable {
     }
 
     private LoxFunction getInitialiser() {
-        return findMethod("init");
+        return findMethod(INIT.getName());
     }
 
     @Override

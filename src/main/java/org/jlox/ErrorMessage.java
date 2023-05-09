@@ -5,10 +5,12 @@ public enum ErrorMessage {
     EXPECT_BUT_GOT("Expected %s but got %s."),
     EXPECT_AFTER("Expected %s after %s."),
     EXPECT_BEFORE("Expected %s before %s."),
+
     NO_VAR_NAME(String.format(EXPECT.getMsg(), "variable name")),
     NO_EXPR(String.format(EXPECT.getMsg(), "an expression")),
     NO_PARAM_NAME(String.format(EXPECT.getMsg(), "parameter name")),
     NO_FUNC_NAME(String.format(EXPECT.getMsg(), "%s name")),
+    NO_SUPERCLASS_NAME(String.format(EXPECT.getMsg(), "superclass name")),
     NO_RHS(String.format(EXPECT_AFTER.getMsg(), "right-hand expression", "%s")),
     NO_VAR_END(String.format(EXPECT_AFTER.getMsg(), "';'", "a variable declaration")),
     NO_IF_START(String.format(EXPECT_AFTER.getMsg(), "'('", "'if'")),
@@ -30,7 +32,9 @@ public enum ErrorMessage {
     NO_CLASS_BODY_END(String.format(EXPECT_AFTER.getMsg(), "'}'", "class body")),
     NO_PROPERTY(String.format(EXPECT_AFTER.getMsg(), "property name", "'.'")),
     INVALID_CALL_PARAMS(String.format(EXPECT_BUT_GOT.getMsg(), "%d arguments", "%d")),
-    NO_RETURN_END(String.format(EXPECT.getMsg(), "';'", "return value.")),
+    NO_RETURN_END(String.format(EXPECT.getMsg(), "';'", "return value")),
+    NO_SUPER_ACCESS(String.format(EXPECT_AFTER.getMsg(), "'.'", "'super'")),
+    NO_SUPER_METHOD_NAME(String.format(EXPECT.getMsg(), "superclass method name")),
 
     UNDEFINED_VARIABLE("Undefined variable %s."),
     EXISTING_VARIABLE("Already a variable with this name in scope."),
@@ -49,7 +53,11 @@ public enum ErrorMessage {
     THIS_NO_CLASS("Can't use 'this' outside of a class."),
     RETURN_FROM_INIT("Can't return a value from an initializer."),
     NOT_INSTANCE("Only instances have properties."),
-    UNDEFINED_PROPERTY("Undefined property '%s'.");
+    UNDEFINED_PROPERTY("Undefined property '%s'."),
+    SELF_INHERIT("A class can't inherit from itself."),
+    SUPER_MUST_BE_CLASS("Superclass must be a class."),
+    SUPER_OUTSIDE_CLASS("Can't use 'super' outside of a class."),
+    SUPER_NO_SUPERCLASS("Can't use 'super' in a class with no superclass.");
 
     private final String msg;
 

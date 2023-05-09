@@ -5,36 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import static org.jlox.ErrorMessage.ARG_LIMIT;
-import static org.jlox.ErrorMessage.COND_ERROR;
-import static org.jlox.ErrorMessage.EXPR_ERROR;
-import static org.jlox.ErrorMessage.INVALID_ASSIGN;
-import static org.jlox.ErrorMessage.NO_BLOCK_END;
-import static org.jlox.ErrorMessage.NO_CALL_ARGS_END;
-import static org.jlox.ErrorMessage.NO_CLASS_BODY_END;
-import static org.jlox.ErrorMessage.NO_CLASS_BODY_START;
-import static org.jlox.ErrorMessage.NO_CLASS_NAME;
-import static org.jlox.ErrorMessage.NO_EXPR;
-import static org.jlox.ErrorMessage.NO_EXPR_END;
-import static org.jlox.ErrorMessage.NO_FOR_CLAUSE_END;
-import static org.jlox.ErrorMessage.NO_FOR_COND_END;
-import static org.jlox.ErrorMessage.NO_FOR_START;
-import static org.jlox.ErrorMessage.NO_FUNC_BLOCK_START;
-import static org.jlox.ErrorMessage.NO_FUNC_NAME;
-import static org.jlox.ErrorMessage.NO_FUNC_PARAMS_END;
-import static org.jlox.ErrorMessage.NO_FUNC_PARAMS_START;
-import static org.jlox.ErrorMessage.NO_IF_END;
-import static org.jlox.ErrorMessage.NO_IF_START;
-import static org.jlox.ErrorMessage.NO_PARAM_NAME;
-import static org.jlox.ErrorMessage.NO_PROPERTY;
-import static org.jlox.ErrorMessage.NO_RETURN_END;
-import static org.jlox.ErrorMessage.NO_RHS;
-import static org.jlox.ErrorMessage.NO_STMT_END;
-import static org.jlox.ErrorMessage.NO_VAR_END;
-import static org.jlox.ErrorMessage.NO_VAR_NAME;
-import static org.jlox.ErrorMessage.NO_WHILE_END;
-import static org.jlox.ErrorMessage.NO_WHILE_START;
-import static org.jlox.ErrorMessage.PARAM_LIMIT;
+import static org.jlox.ErrorMessage.*;
 import static org.jlox.TokenType.*;
 
 public class Parser {
@@ -67,13 +38,18 @@ public class Parser {
 
     private Stmt classDeclaration() {
         Token name = consume(IDENTIFIER, NO_CLASS_NAME.getMsg());
+        Expr.Variable superclass = null;
+        if (match(LESS)) {
+            consume(IDENTIFIER, NO_SUPERCLASS_NAME.getMsg());
+            superclass = new Expr.Variable(previous());
+        }
         consume(LEFT_BRACE, NO_CLASS_BODY_START.getMsg());
         List<Stmt.Function> methods = new ArrayList<>();
         while (!check(RIGHT_BRACE) && !isAtEnd()) {
             methods.add(function("method"));
         }
         consume(RIGHT_BRACE, NO_CLASS_BODY_END.getMsg());
-        return new Stmt.Class(name, methods);
+        return new Stmt.Class(name, superclass, methods);
     }
 
     private Stmt varDeclaration() {
@@ -290,6 +266,13 @@ public class Parser {
         if (match(NIL)) return new Expr.Literal(null);
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal());
+        }
+        if (match(SUPER)) {
+            Token keyword = previous();
+            consume(DOT, NO_SUPER_ACCESS.getMsg());
+            Token method = consume(IDENTIFIER,
+                    NO_SUPER_METHOD_NAME.getMsg());
+            return new Expr.Super(keyword, method);
         }
         if (match(SELF)) return new Expr.Self(previous());
         if (match(IDENTIFIER)) {
