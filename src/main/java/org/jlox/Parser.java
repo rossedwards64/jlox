@@ -11,6 +11,9 @@ import static org.jlox.ErrorMessage.EXPR_ERROR;
 import static org.jlox.ErrorMessage.INVALID_ASSIGN;
 import static org.jlox.ErrorMessage.NO_BLOCK_END;
 import static org.jlox.ErrorMessage.NO_CALL_ARGS_END;
+import static org.jlox.ErrorMessage.NO_CLASS_BODY_END;
+import static org.jlox.ErrorMessage.NO_CLASS_BODY_START;
+import static org.jlox.ErrorMessage.NO_CLASS_NAME;
 import static org.jlox.ErrorMessage.NO_EXPR;
 import static org.jlox.ErrorMessage.NO_EXPR_END;
 import static org.jlox.ErrorMessage.NO_FOR_CLAUSE_END;
@@ -23,6 +26,7 @@ import static org.jlox.ErrorMessage.NO_FUNC_PARAMS_START;
 import static org.jlox.ErrorMessage.NO_IF_END;
 import static org.jlox.ErrorMessage.NO_IF_START;
 import static org.jlox.ErrorMessage.NO_PARAM_NAME;
+import static org.jlox.ErrorMessage.NO_PROPERTY;
 import static org.jlox.ErrorMessage.NO_RETURN_END;
 import static org.jlox.ErrorMessage.NO_RHS;
 import static org.jlox.ErrorMessage.NO_STMT_END;
@@ -31,41 +35,7 @@ import static org.jlox.ErrorMessage.NO_VAR_NAME;
 import static org.jlox.ErrorMessage.NO_WHILE_END;
 import static org.jlox.ErrorMessage.NO_WHILE_START;
 import static org.jlox.ErrorMessage.PARAM_LIMIT;
-import static org.jlox.TokenType.AND;
-import static org.jlox.TokenType.BANG;
-import static org.jlox.TokenType.BANG_EQUAL;
-import static org.jlox.TokenType.COMMA;
-import static org.jlox.TokenType.ELSE;
-import static org.jlox.TokenType.EOF;
-import static org.jlox.TokenType.EQUAL;
-import static org.jlox.TokenType.EQUAL_EQUAL;
-import static org.jlox.TokenType.FALSE;
-import static org.jlox.TokenType.FOR;
-import static org.jlox.TokenType.FUNC;
-import static org.jlox.TokenType.GREATER;
-import static org.jlox.TokenType.GREATER_EQUAL;
-import static org.jlox.TokenType.IDENTIFIER;
-import static org.jlox.TokenType.IF;
-import static org.jlox.TokenType.LEFT_BRACE;
-import static org.jlox.TokenType.LEFT_PAREN;
-import static org.jlox.TokenType.LESS;
-import static org.jlox.TokenType.LESS_EQUAL;
-import static org.jlox.TokenType.LET;
-import static org.jlox.TokenType.MINUS;
-import static org.jlox.TokenType.NIL;
-import static org.jlox.TokenType.NUMBER;
-import static org.jlox.TokenType.OR;
-import static org.jlox.TokenType.PLUS;
-import static org.jlox.TokenType.PRINT;
-import static org.jlox.TokenType.RETURN;
-import static org.jlox.TokenType.RIGHT_BRACE;
-import static org.jlox.TokenType.RIGHT_PAREN;
-import static org.jlox.TokenType.SEMICOLON;
-import static org.jlox.TokenType.SLASH;
-import static org.jlox.TokenType.STAR;
-import static org.jlox.TokenType.STRING;
-import static org.jlox.TokenType.TRUE;
-import static org.jlox.TokenType.WHILE;
+import static org.jlox.TokenType.*;
 
 public class Parser {
     private final List<Token> tokens;
@@ -85,6 +55,7 @@ public class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(CLASS)) return classDeclaration();
             if (match(FUNC)) return function("function");
             if (match(LET)) return varDeclaration();
             return statement();
@@ -92,6 +63,17 @@ public class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt classDeclaration() {
+        Token name = consume(IDENTIFIER, NO_CLASS_NAME.getMsg());
+        consume(LEFT_BRACE, NO_CLASS_BODY_START.getMsg());
+        List<Stmt.Function> methods = new ArrayList<>();
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            methods.add(function("method"));
+        }
+        consume(RIGHT_BRACE, NO_CLASS_BODY_END.getMsg());
+        return new Stmt.Class(name, methods);
     }
 
     private Stmt varDeclaration() {
@@ -215,6 +197,8 @@ public class Parser {
             if (expr instanceof Expr.Variable) {
                 Token name = ((Expr.Variable)expr).getName();
                 return new Expr.Assign(name, value);
+            } else if (expr instanceof Expr.Get get) {
+                return new Expr.Set(get.getObject(), get.getName(), value);
             }
             throw error(equals, INVALID_ASSIGN.getMsg());
         }
@@ -274,6 +258,10 @@ public class Parser {
         while (true) {
             if (match(LEFT_PAREN)) {
                 expr = finishCall(expr);
+            } else if (match(DOT)) {
+                Token name = consume(IDENTIFIER,
+                        NO_PROPERTY.getMsg());
+                expr = new Expr.Get(expr, name);
             } else {
                 break;
             }
@@ -303,6 +291,7 @@ public class Parser {
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal());
         }
+        if (match(SELF)) return new Expr.Self(previous());
         if (match(IDENTIFIER)) {
             return new Expr.Variable(previous());
         }

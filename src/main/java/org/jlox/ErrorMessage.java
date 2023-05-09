@@ -25,6 +25,10 @@ public enum ErrorMessage {
     NO_FUNC_PARAMS_START(String.format(EXPECT_AFTER.getMsg(), "'('", "%s name")),
     NO_FUNC_PARAMS_END(String.format(EXPECT_AFTER.getMsg(), "')'", "parameters")),
     NO_FUNC_BLOCK_START(String.format(EXPECT_BEFORE.getMsg(), "'{'", "%s body")),
+    NO_CLASS_NAME(String.format(EXPECT.getMsg(), "class name")),
+    NO_CLASS_BODY_START(String.format(EXPECT_BEFORE.getMsg(), "'{'", "class body")),
+    NO_CLASS_BODY_END(String.format(EXPECT_AFTER.getMsg(), "'}'", "class body")),
+    NO_PROPERTY(String.format(EXPECT_AFTER.getMsg(), "property name", "'.'")),
     INVALID_CALL_PARAMS(String.format(EXPECT_BUT_GOT.getMsg(), "%d arguments", "%d")),
     NO_RETURN_END(String.format(EXPECT.getMsg(), "';'", "return value.")),
 
@@ -41,7 +45,11 @@ public enum ErrorMessage {
     PARAM_LIMIT("Can't have more than 255 parameters."),
     OPERAND_NUMBER("Operand must be a number."),
     OPERAND_NUMBERS("Operands must be numbers."),
-    MATCH_OPERANDS("Operands must be two numbers or two strings.");
+    MATCH_OPERANDS("Operands must be two numbers or two strings."),
+    THIS_NO_CLASS("Can't use 'this' outside of a class."),
+    RETURN_FROM_INIT("Can't return a value from an initializer."),
+    NOT_INSTANCE("Only instances have properties."),
+    UNDEFINED_PROPERTY("Undefined property '%s'.");
 
     private final String msg;
 

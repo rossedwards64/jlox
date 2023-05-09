@@ -1,0 +1,20 @@
+class Bacon {
+  init() {
+    print "Made bacon.";
+  }
+
+  eat() {
+    print "Crunch crunch crunch.";
+  }
+
+  b() {
+    print self;
+  }
+}
+
+print Bacon;
+
+let b = Bacon();
+b.eat();
+Bacon().eat();
+Bacon().b();

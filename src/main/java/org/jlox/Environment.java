@@ -28,7 +28,7 @@ public class Environment {
     public Environment ancestor(int distance) {
         Environment environment = this;
         for (int i = 0; i < distance; i++) {
-            environment = environment.getEnclosing();
+            environment = environment.enclosing;
         }
         return environment;
     }

@@ -9,14 +9,15 @@ import static org.jlox.ErrorMessage.DIVIDE_BY_ZERO;
 import static org.jlox.ErrorMessage.INVALID_CALL;
 import static org.jlox.ErrorMessage.INVALID_CALL_PARAMS;
 import static org.jlox.ErrorMessage.MATCH_OPERANDS;
+import static org.jlox.ErrorMessage.NOT_INSTANCE;
 import static org.jlox.ErrorMessage.OPERAND_NUMBER;
 import static org.jlox.ErrorMessage.OPERAND_NUMBERS;
 
 public class Interpreter implements Expr.Visitor<Object>,
                                     Stmt.Visitor<Void> {
-    public final Environment globals = new Environment();
+    private final Environment globals = new Environment();
     private final Map<Expr, Integer> locals = new HashMap<>();
-    private Environment environment = new Environment();
+    private Environment environment = globals;
 
     public Interpreter() {
         globals.define("clock",
@@ -141,6 +142,15 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        Object object = evaluate(expr.getObject());
+        if (object instanceof LoxInstance) {
+            return ((LoxInstance) object).get(expr.getName());
+        }
+        throw new RuntimeError(expr.getName(), NOT_INSTANCE.getMsg());
+    }
+
+    @Override
     public Object visitLogicalExpr(final Expr.Logical expr) {
         Object left = evaluate(expr.getLeft());
         if (expr.getOperator().type() == TokenType.OR) {
@@ -149,6 +159,23 @@ public class Interpreter implements Expr.Visitor<Object>,
             if (!isTruthy(left)) return left;
         }
         return evaluate(expr.getRight());
+    }
+
+    @Override
+    public Object visitSelfExpr(Expr.Self expr) {
+        return lookUpVariable(expr.getKeyword(), expr);
+    }
+
+    @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        Object object = evaluate(expr.getObject());
+        if(!(object instanceof LoxInstance)) {
+            throw new RuntimeError(expr.getName(),
+                    "Only instances have fields.");
+        }
+        Object value = evaluate(expr.getValue());
+        ((LoxInstance) object).set(expr.getName(), value);
+        return null;
     }
 
     @Override
@@ -197,6 +224,21 @@ public class Interpreter implements Expr.Visitor<Object>,
     }
 
     @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        environment.define(stmt.getName().lexeme(), null);
+        Map<String, LoxFunction> methods = new HashMap<>();
+        for (Stmt.Function method : stmt.getMethods()) {
+            LoxFunction function = new LoxFunction(method,
+                    environment,
+                    method.getName().lexeme().equals("init"));
+            methods.put(method.getName().lexeme(), function);
+        }
+        LoxClass clazz = new LoxClass(stmt.getName().lexeme(), methods);
+        environment.assign(stmt.getName(), clazz);
+        return null;
+    }
+
+    @Override
     public Void visitExpressionStmt(final Stmt.Expression stmt) {
         evaluate(stmt.getExpression());
         return null;
@@ -204,8 +246,9 @@ public class Interpreter implements Expr.Visitor<Object>,
 
     @Override
     public Void visitFunctionStmt(final Stmt.Function stmt) {
-        environment.define(stmt.getName().lexeme(),
-                new LoxFunction(stmt, environment));
+        LoxFunction function = new LoxFunction(stmt,
+                environment, false);
+        environment.define(stmt.getName().lexeme(), function);
         return null;
     }
 

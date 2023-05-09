@@ -41,7 +41,7 @@ import static org.jlox.TokenType.SLASH;
 import static org.jlox.TokenType.STAR;
 import static org.jlox.TokenType.STRING;
 import static org.jlox.TokenType.SUPER;
-import static org.jlox.TokenType.THIS;
+import static org.jlox.TokenType.SELF;
 import static org.jlox.TokenType.TRUE;
 import static org.jlox.TokenType.WHILE;
 
@@ -62,7 +62,7 @@ public class Scanner {
         KEYWORDS.put("print", PRINT);
         KEYWORDS.put("return", RETURN);
         KEYWORDS.put("super", SUPER);
-        KEYWORDS.put("this", THIS);
+        KEYWORDS.put("self", SELF);
         KEYWORDS.put("true", TRUE);
         KEYWORDS.put("let", LET);
         KEYWORDS.put("while", WHILE);

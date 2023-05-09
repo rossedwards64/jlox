@@ -23,7 +23,22 @@ public class AstPrinter implements Expr.Visitor<String> {
     }
 
     @Override
+    public String visitGetExpr(Expr.Get expr) {
+        return null;
+    }
+
+    @Override
     public String visitLogicalExpr(final Expr.Logical expr) {
+        return null;
+    }
+
+    @Override
+    public String visitSelfExpr(Expr.Self expr) {
+        return null;
+    }
+
+    @Override
+    public String visitSetExpr(Expr.Set expr) {
         return null;
     }
 
