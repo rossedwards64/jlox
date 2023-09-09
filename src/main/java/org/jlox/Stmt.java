@@ -2,8 +2,8 @@ package org.jlox;
 
 import java.util.List;
 
-abstract class Stmt {
-    interface Visitor<R> {
+public abstract class Stmt {
+    public interface Visitor<R> {
         R visitBlockStmt(Block stmt);
         R visitClassStmt(Class stmt);
         R visitExpressionStmt(Expression stmt);
@@ -15,9 +15,9 @@ abstract class Stmt {
         R visitWhileStmt(While stmt);
     }
 
-    abstract <R> R accept(Visitor<R> visitor);
+    public abstract <R> R accept(Visitor<R> visitor);
 
-    static class Block extends Stmt {
+    public static class Block extends Stmt {
         private final List<Stmt> statements;
 
         Block(List<Stmt> statements) {
@@ -29,12 +29,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitBlockStmt(this);
         }
     }
 
-    static class Class extends Stmt {
+    public static class Class extends Stmt {
         private final Token name;
         private final Expr.Variable superclass;
         private final List<Stmt.Function> methods;
@@ -58,12 +58,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitClassStmt(this);
         }
     }
 
-    static class Expression extends Stmt {
+    public static class Expression extends Stmt {
         private final Expr expression;
 
         Expression(Expr expression) {
@@ -75,12 +75,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitExpressionStmt(this);
         }
     }
 
-    static class Function extends Stmt {
+    public static class Function extends Stmt {
         private final Token name;
         private final List<Token> params;
         private final List<Stmt> body;
@@ -104,12 +104,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitFunctionStmt(this);
         }
     }
 
-    static class If extends Stmt {
+    public static class If extends Stmt {
         private final Expr condition;
         private final Stmt thenBranch;
         private final Stmt elseBranch;
@@ -133,12 +133,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitIfStmt(this);
         }
     }
 
-    static class Print extends Stmt {
+    public static class Print extends Stmt {
         private final Expr expression;
 
         Print(Expr expression) {
@@ -150,12 +150,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitPrintStmt(this);
         }
     }
 
-    static class Return extends Stmt {
+    public static class Return extends Stmt {
         private final Token keyword;
         private final Expr value;
 
@@ -173,12 +173,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitReturnStmt(this);
         }
     }
 
-    static class Var extends Stmt {
+    public static class Var extends Stmt {
         private final Token name;
         private final Expr initializer;
 
@@ -196,12 +196,12 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitVarStmt(this);
         }
     }
 
-    static class While extends Stmt {
+    public static class While extends Stmt {
         private final Expr condition;
         private final Stmt body;
 
@@ -219,7 +219,7 @@ abstract class Stmt {
         }
 
         @Override
-        <R> R accept(Visitor<R> visitor) {
+        public <R> R accept(Visitor<R> visitor) {
             return visitor.visitWhileStmt(this);
         }
     }

@@ -52,9 +52,9 @@ public class GenerateAst {
             writer.println("import java.util.List;");
             newLine(writer);
 
-            writer.println("abstract class " + baseName + " {");
+            writer.println("public abstract class " + baseName + " {");
             defineVisitor(writer, baseName, types);
-            writer.println("    abstract <R> R accept(Visitor<R> visitor);");
+            writer.println("    public abstract <R> R accept(Visitor<R> visitor);");
             newLine(writer);
 
             /* AST classes */
@@ -74,7 +74,7 @@ public class GenerateAst {
 
     private static void defineType(final PrintWriter writer, final String baseName,
                                    final String className, final String fieldList) {
-        writer.println("    static class " + className + " extends " + baseName + " {");
+        writer.println("    public static class " + className + " extends " + baseName + " {");
         final String[] fields = fieldList.split(", ");
         for (String field : fields) {
             writer.println("        private final "  + field + ";");
@@ -97,7 +97,7 @@ public class GenerateAst {
             newLine(writer);
         }
         writer.println("        @Override");
-        writer.println("        <R> R accept(Visitor<R> visitor) {");
+        writer.println("        public <R> R accept(Visitor<R> visitor) {");
         writer.println("            return visitor.visit" + className + baseName + "(this);");
         writer.println("        }");
         writer.println("    }");
@@ -105,7 +105,7 @@ public class GenerateAst {
 
     private static void defineVisitor(final PrintWriter writer, final String baseName,
                                       final List<String> types) {
-        writer.println("    interface Visitor<R> {");
+        writer.println("    public interface Visitor<R> {");
         for (String type : types) {
             String typeName = type.split(":")[0].trim();
             writer.println("        R visit" + typeName + baseName + "(" +
